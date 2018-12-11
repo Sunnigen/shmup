@@ -61,6 +61,7 @@ class HoverLayout(FloatLayout, HoverBehavior):
 
     def __init__(self, **kwargs):
         super(HoverLayout, self).__init__(**kwargs)
+        # TODO: Create modifiable in/out animations
         self.in_animation = Animation(pos_hint={'x': .75}, duration=.10)  #, t='in_expo')
         self.out_animation = Animation(pos_hint={'x': .995}, duration=.10)  #, t='in_expo')
         # print('HoverLayout loaded')

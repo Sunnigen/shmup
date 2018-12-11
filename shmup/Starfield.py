@@ -126,15 +126,15 @@ class Starfield(Widget):
     #     self.texture = CoreImage('star.png').texture
     #     self.stars = [Star(self, i) for i in range(NSTARS)]
 
-    def update_glsl(self, nap):
+    def update_glsl(self, game_speed):
         x0, y0 = self.center
         # max_distance = 1.1 * max(x0, y0)
         max_distance = max(Window.width, Window.height) * 1.1
 
         # ---Set Starts in Motion---
         for star in self.stars:
-            star.distance *= self.speed * nap + 1
-            star.size += self.size_inc * nap
+            star.distance *= self.speed * game_speed + 1
+            star.size += self.size_inc * game_speed
 
             # ---Capture Stars that have Escaped---
             if star.distance > max_distance:

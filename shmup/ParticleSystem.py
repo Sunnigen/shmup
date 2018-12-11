@@ -12,6 +12,7 @@ class Particle:
         self.vsize = parent.vsize
         self.base_i = 4 * i * self.vsize
         self.reset(created=True)
+        self.texture_size = (1, 1)
 
     def update(self):
         # Update all (4) vertices of a polygon to keep in sync with particle's
@@ -35,7 +36,7 @@ class Particle:
         """
         raise NotImplementedError()
 
-    def advance(self, nap):
+    def advance(self, game_speed):
         raise NotImplementedError()
 
 
@@ -53,12 +54,12 @@ class Trail(Particle):
         else:
             self.size = random() + self.default_size
 
-    def advance(self, nap):
-        self.size -= nap
+    def advance(self, game_speed):
+        self.size -= game_speed
         if self.size <= 0.1:
             self.reset()
         else:
-            self.x -= self.drift_distance * nap
+            self.x -= self.drift_distance * game_speed
 
 
 class Bullet(Particle):
@@ -73,9 +74,9 @@ class Bullet(Particle):
         self.x = -100
         self.y = -100
 
-    def advance(self, nap):
+    def advance(self, game_speed):
         if self.active:  # If bullet is already live
-            self.x += self.speed * nap
+            self.x += self.speed * game_speed
 
             # ---"Deactive" Bullet If Off-screen---
             if 0 > self.x or self.x > self.parent.width:
@@ -94,70 +95,119 @@ class Enemy(Particle):
     v = 0
     movement_patterns = ['right_parabola', 'across', 'up_diagonal', 'down_diagonal']
     current_pattern = 'across'
+    ship_speed = 4
 
     def reset(self, created=False):
         self.active = False
         self.x = -100
         self.y = -100
         self.v = 0
+        self.current_pattern = None
 
-    def advance(self, nap):
-        # print('nap:', nap)
+    def advance(self, game_speed):
+        # print('game_speed:', game_speed)
         if self.active:
-            if self.check_hit():  # Step 1
+            if self.check_collision():  # Step 1
                 self.reset()
                 return
 
-            self.x -= 200 * nap  # Step 2
-            if self.x < 50:
+            # Horizontal Movement
+            if self.current_pattern == 'across':
+                self.x -= self.width * self.ship_speed * game_speed
+            elif self.current_pattern == 'right_parabola':
+                pass
+            elif self.current_pattern == 'up_diagonal':
+                pass
+            elif self.current_pattern == 'down_diagonal':
+                pass
+
+            if self.x < -self.width:  # Check if ship is completely out of sight
                 self.reset()
                 return
 
-            self.y += self.v * nap  # Step 3
+            # Vertical Movement
+            if self.current_pattern == 'across':
+                # self.y += self.v * game_speed *
+                pass
+            elif self.current_pattern == 'right_parabola':
+                pass
+            elif self.current_pattern == 'up_diagonal':
+                self.y += self.v * game_speed * 2
+            elif self.current_pattern == 'down_diagonal':
+                self.y -= self.v * game_speed * 2
+
             if self.y <= 0:
                 self.v = abs(self.v)
             elif self.y >= self.parent.height:
                 self.v = -abs(self.v)
 
-        elif self.parent.spawn_delay <= 0:  # Step 4
+        # elif self.parent.spawn_delay <= 0:  # Step 4
+        elif self.parent.spawn_counter > 0:  # Step 4
             self.active = True
+            # self.current_pattern = choice(self.movement_patterns)
+            self.current_pattern = 'across'
 
+            if self.current_pattern == 'across':
+                self.x = self.parent.width + self.width
+                self.y = self.parent.height * random()
+            elif self.current_pattern == 'right_parabola':
+                pass
+            elif self.current_pattern == 'up_diagonal':
+                self.y += self.v * game_speed * 2
+            elif self.current_pattern == 'down_diagonal':
+                self.y -= self.v * game_speed * 2
 
-
-            self.x = self.parent.width + 50
-            self.y = self.parent.height * random()
             self.v = randint(-100, 100)
-            self.parent.spawn_delay += 1
+            # self.parent.spawn_delay += 1
+            self.parent.spawn_counter -= 1
+        # if self.active:
+        #     print('Enemy Ship pos: (%s, %s)' % (self.x, self.y))
+        #     print('Current Pattern: %s' % self.current_pattern)
 
-    def check_hit(self):
+    def check_collision(self):
         if math.hypot(self.parent.player_x - self.x,
                       self.parent.player_y - self.y) < 60:
             return True
 
-        for b in self.parent.bullets:
-            if not b.active:
+        for bullet in self.parent.bullets:
+            if not bullet.active:
                 continue
 
-            if math.hypot(b.x - self.x, b.y - self.y) < 30:
-                b.reset()
+            if math.hypot(bullet.x - self.x, bullet.y - self.y) < 30:
+                bullet.reset()
                 return True
 
 
 class Player(Particle):
     tex_name = 'player'
+    control_mode = 'keyboard'
+    max_velocity = 600
+    x_vel = 0
+    y_vel = 0
+
+    def move_ship(self, x, y):
+        self.x = x
+        self.y = y
 
     def reset(self, created=False):
+        # pass
         self.x = self.parent.player_x
         self.y = self.parent.player_y
 
-    def advance(self, nap):
+    # advance = reset
+
+    def advance(self, game_speed):
         self.x = self.parent.player_x
         self.y = self.parent.player_y
+    #     self.x_vel = self.parent.player_x_velocity
+    #     self.y_vel = self.parent.player_y_velocity
+    #     self.x += self.x_vel * game_speed
+    #     self.y += self.y_vel * game_speed
+
 
 class Star(Particle):
     plane = 1
     tex_name = 'star'
-    # default_speed = 40
     speed = 40
     default_size = 0.1
 
@@ -166,13 +216,17 @@ class Star(Particle):
         self.plane = randint(1, 3)
 
         if created:
-            self.x = random() * self.parent.width + self.size
+            if self.speed > 0:
+                self.x = random() * self.parent.width + self.size
             # print('self.parent:', self.parent)
             # print('self.parent.width:', self.parent.width)
             # print('not created', self.x)
 
         else:
-            self.x = self.parent.width + self.size
+            if self.speed > 0:
+                self.x = self.parent.width + self.size
+            else:
+                self.x = -self.width*2
             # self.default_speed = self.speed
             # print('self.parent:', self.parent)
             # print('self.parent.width:', self.parent.width)
@@ -182,9 +236,13 @@ class Star(Particle):
         self.size = self.default_size * self.plane
         # self.speed = randint(self.default_speed - 10, self.default_speed + 10)
 
-    def advance(self, nap):
+    def advance(self, game_speed):
         # Move sprite to the left until out of screen then reset
-        self.x -= self.speed * self.plane * nap
+        self.x -= self.speed * self.plane * game_speed
         self.size = self.default_size * self.plane
-        if self.x < 0:
+        # ---Going Right to Left---
+        if self.x < 0 - (self.width * 2) and self.speed > 0:
+            self.reset()
+        # ---Going Left to Right---
+        if self.x > self.parent.width + (self.width * 2) and self.speed < 0:
             self.reset()

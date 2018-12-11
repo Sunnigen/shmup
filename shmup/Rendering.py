@@ -1,4 +1,4 @@
-from kivy.graphics import Mesh, RenderContext
+from kivy.graphics import Color, Rectangle, Mesh, RenderContext
 from kivy.uix.widget import Widget
 
 import Helpers
@@ -23,11 +23,14 @@ class PSWidget(Widget):
         self.canvas = RenderContext(use_parent_projection=True)
         self.canvas.shader.source = self.glsl
 
+        # self.red, self.green, self.blue, self.hue = 1, 1, 0, 1
+
         self.vfmt = (
             (b'vCenter', 2, 'float'),
             (b'vScale', 1, 'float'),
             (b'vPosition', 2, 'float'),
             (b'vTexCoords0', 2, 'float'),
+            # (b'opacity', 1, 'float'),
         )
 
         self.vsize = sum(attr[1] for attr in self.vfmt)
@@ -39,6 +42,7 @@ class PSWidget(Widget):
         count = len(self.particles)
         uv = self.uvmap[Cls.tex_name]
         particles = []
+        print('%s Size: (%s, %s)' % (Cls, uv.su * 2, uv.sv * 2))
 
         for i in range(count, count + num):
             j = 4 * i
@@ -53,12 +57,15 @@ class PSWidget(Widget):
             ))
 
             p = Cls(self, i)
+            p.texture_size = (uv.su * 2, uv.sv * 2)
+            p.width = uv.su * 2
+            p.height = uv.sv * 2
             self.particles.append(p)
             particles.append(p)
 
         return particles
 
-    def update_glsl(self, nap):
+    def update_glsl(self, game_speed):
         """
         • This loop can and should be parallelized, in full or partially
         • This code can also run on another thread completely, and
@@ -67,12 +74,14 @@ class PSWidget(Widget):
           background that doesn't affect main program flow)
         """
         for p in self.particles:
-            p.advance(nap)  # update state of particle
+            p.advance(game_speed)  # update state of particle
             p.update()  # keep necessary data in array of vertices in sync with internal state
 
         self.canvas.clear()
 
+        # print('texture:', self.texture)
         with self.canvas:
+            # Color(self.red, self.green, self.blue, self.hue)
             Mesh(fmt=self.vfmt, mode='triangles',
                  indices=self.indices, vertices=self.vertices,
                  texture=self.texture)

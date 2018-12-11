@@ -74,10 +74,12 @@ Builder.load_string("""
 class SettingScreen(Screen):
 
     def slider_1(self, val, *args):
-        print('SettingScreen.slider_1:', val)
+        # print('SettingScreen.slider_1:', val)
+        pass
 
     def slider_2(self, val, *args):
-        print('SettingScreen.slider_1:', val)
+        # print('SettingScreen.slider_1:', val)
+        pass
 
     def switch_back(self, *args):
         self.manager.current = 'main'
@@ -115,7 +117,9 @@ class MenuScreen(Screen):
         self.menu_sm.current = 'setting'
 
     def on_pre_enter(self, *args):
-        print('MenuScreen.on_pre_enter')
+        # print('MenuScreen.on_pre_enter')
+        pass
 
     def on_enter(self, *args):
-        print('MenuScreen.on_enter')
+        # print('MenuScreen.on_enter')
+        pass
